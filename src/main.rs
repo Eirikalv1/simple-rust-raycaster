@@ -4,9 +4,12 @@ use std::f32::consts::PI;
 
 const WINDOW_SIZE: f32 = 800.0;
 const MOVE_SPEED: f32 = 5.0;
+const PLAYER_SIZE: f32 = 8.0;
+const WALL_OUTLINE_SIZE: f32 = 4.0;
 
 #[macroquad::main(window_conf)]
 async fn main() {
+    let map = Map::new();
     let mut player = Player {
         x: 300.0,
         y: 300.0,
@@ -14,13 +17,15 @@ async fn main() {
         dy: f32::sin(0.0) * MOVE_SPEED,
         angle: 0.0,
     };
-    let map = Map::new();
 
     loop {
         clear_background(DARKGRAY);
 
         map.draw_map();
         player.draw_player();
+
+        let ray = Ray::new(&player, &map);
+        ray.draw_ray();
 
         player.move_player();
 
@@ -37,6 +42,67 @@ fn window_conf() -> Conf {
     }
 }
 
+struct Ray {
+    x: f32,
+    y: f32,
+    x1: f32,
+    y1: f32,
+}
+
+impl Ray {
+    fn new(player: &Player, map: &Map) -> Self {
+        let x = player.x;
+        let y = player.y;
+        let angle = player.angle;
+
+        let mut intersection_y = 0.0;
+        if angle > PI {
+            intersection_y = ((y / map.wall_size).floor() * map.wall_size).abs();
+        } else if angle < PI {
+            intersection_y = (y / map.wall_size).floor() * map.wall_size + map.wall_size;
+        }
+        let mut intersection_x = x + (intersection_y - y) / angle.tan();
+
+        for depth_of_field in 0..8 {
+            let grid_x = (intersection_x / map.wall_size).floor().clamp(0.0, map.xy - 1.0) as usize;
+            let mut grid_y = (intersection_y / map.wall_size).floor().clamp(0.0, map.xy - 1.0) as usize;
+            
+            if angle > PI {
+                grid_y -= 1;
+            }
+
+            if map.data[grid_y * map.xy as usize + grid_x] == 1 {
+                break;
+            }
+            
+            if angle > PI {
+                intersection_x -= map.wall_size / angle.tan();
+                intersection_y -= map.wall_size;
+            } else if angle < PI {
+                intersection_x += map.wall_size / angle.tan();
+                intersection_y += map.wall_size;
+            }
+        }
+
+        Self {
+            x,
+            y,
+            x1: intersection_x,
+            y1: intersection_y,
+        }
+    }
+    fn draw_ray(&self) {
+        draw_line(
+            self.x + PLAYER_SIZE / 2.0,
+            self.y + PLAYER_SIZE / 2.0,
+            self.x1 + PLAYER_SIZE / 2.0,
+            self.y1 + PLAYER_SIZE / 2.0 - WALL_OUTLINE_SIZE / 2.0,
+            1.0,
+            GREEN,
+        );
+    }
+}
+
 struct Player {
     x: f32,
     y: f32,
@@ -47,14 +113,12 @@ struct Player {
 
 impl Player {
     fn draw_player(&self) {
-        let player_size = 8.0;
-
-        draw_rectangle(self.x, self.y, player_size, player_size, YELLOW);
+        draw_rectangle(self.x, self.y, PLAYER_SIZE, PLAYER_SIZE, YELLOW);
         draw_line(
-            self.x + player_size / 2.0,
-            self.y + player_size / 2.0,
-            self.x + self.dx * MOVE_SPEED + player_size / 2.0,
-            self.y + self.dy * MOVE_SPEED + player_size / 2.0,
+            self.x + PLAYER_SIZE / 2.0,
+            self.y + PLAYER_SIZE / 2.0,
+            self.x + self.dx * MOVE_SPEED + PLAYER_SIZE / 2.0,
+            self.y + self.dy * MOVE_SPEED + PLAYER_SIZE / 2.0,
             4.0,
             YELLOW,
         );
@@ -71,7 +135,7 @@ impl Player {
         }
         if is_key_down(KeyCode::D) {
             self.angle += 0.1;
-            if self.angle > 2.0 * PI {
+            if self.angle >= 2.0 * PI {
                 self.angle -= 2.0 * PI;
             }
             self.dx = f32::cos(self.angle) * MOVE_SPEED;
@@ -117,7 +181,6 @@ impl Map {
     }
 
     fn draw_map(&self) {
-        let outline_size = 4.0;
         for x in 0..self.xy as usize {
             for y in 0..self.xy as usize {
                 let mut color = BLACK;
@@ -125,10 +188,10 @@ impl Map {
                     color = WHITE;
                 }
                 draw_rectangle(
-                    x as f32 * self.wall_size + outline_size,
-                    y as f32 * self.wall_size + outline_size,
-                    self.wall_size - outline_size,
-                    self.wall_size - outline_size,
+                    x as f32 * self.wall_size + WALL_OUTLINE_SIZE,
+                    y as f32 * self.wall_size + WALL_OUTLINE_SIZE,
+                    self.wall_size - WALL_OUTLINE_SIZE,
+                    self.wall_size - WALL_OUTLINE_SIZE,
                     color,
                 );
             }
