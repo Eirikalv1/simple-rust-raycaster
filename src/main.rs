@@ -22,13 +22,10 @@ async fn main() {
     loop {
         clear_background(DARKGRAY);
 
-        map.draw_map();
-        player.draw_player();
-
         let mut angle = player.angle - PI / 6.0;
-        for _ in 0..60 {
+        for ray_num in 0..60 {
             let ray = Ray::new(&player, &map, angle);
-            ray.draw_ray();
+            ray.draw_3d_wall(&map, ray_num as f32);
             angle += ONE_DEGREE;
         }
 
@@ -97,6 +94,21 @@ impl Ray {
             distance: f32::min(horizontal_distance, vertical_distance),
         }
     }
+
+    fn draw_3d_wall(&self, map: &Map, ray_num: f32) {
+        let wall_height = ((map.size * 320.0) / self.distance).clamp(0.0, 320.0);
+        let wall_width = WINDOW_SIZE / 60.0;
+
+        draw_line(
+            ray_num * wall_width,
+            WINDOW_SIZE - wall_height,
+            ray_num * wall_width,
+            wall_height,
+            13.333,
+            RED,
+        )
+    }
+
     fn draw_ray(&self) {
         draw_line(
             self.x + PLAYER_SIZE / 2.0,
