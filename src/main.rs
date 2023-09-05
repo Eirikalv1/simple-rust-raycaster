@@ -22,9 +22,13 @@ async fn main() {
     loop {
         clear_background(DARKGRAY);
 
+        map.draw_map();
+        player.draw_player();
+
         let mut angle = player.angle - PI / 6.0;
         for ray_num in 0..60 {
             let ray = Ray::new(&player, &map, angle);
+            ray.draw_ray();
             ray.draw_3d_wall(&map, ray_num as f32);
             angle += ONE_DEGREE;
         }
@@ -37,7 +41,7 @@ async fn main() {
 
 fn window_conf() -> Conf {
     Conf {
-        window_width: WINDOW_SIZE as i32,
+        window_width: 2 * WINDOW_SIZE as i32,
         window_height: WINDOW_SIZE as i32,
         window_resizable: false,
         ..Default::default()
@@ -50,6 +54,7 @@ struct Ray {
     x1: f32,
     y1: f32,
     distance: f32,
+    color: Color,
 }
 
 impl Ray {
@@ -86,26 +91,34 @@ impl Ray {
             intersection_y = horizontal_intersection_y;
         }
 
+        let mut color: Color;
+        if vertical_distance < horizontal_distance {
+            color = RED;
+        } else {
+            color = MAROON;
+        }
+
         Self {
             x: player.x,
             y: player.y,
             x1: intersection_x,
             y1: intersection_y,
             distance: f32::min(horizontal_distance, vertical_distance),
+            color,
         }
     }
 
     fn draw_3d_wall(&self, map: &Map, ray_num: f32) {
-        let wall_height = ((map.size * 320.0) / self.distance).clamp(0.0, 320.0);
+        let wall_height = (self.distance / 2.0).clamp(0.0, 400.0);
         let wall_width = WINDOW_SIZE / 60.0;
 
         draw_line(
-            ray_num * wall_width,
+            WINDOW_SIZE + ray_num * wall_width,
             WINDOW_SIZE - wall_height,
-            ray_num * wall_width,
+            WINDOW_SIZE + ray_num * wall_width,
             wall_height,
             13.333,
-            RED,
+            self.color,
         )
     }
 
