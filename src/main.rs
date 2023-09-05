@@ -55,7 +55,8 @@ impl Ray {
         let y = player.y;
         let angle = player.angle;
 
-        let mut intersection_y = 0.0;
+        // ---Check Horizontal Lines---
+        /*let mut intersection_y = 0.0;
         if angle > PI {
             intersection_y = ((y / map.wall_size).floor() * map.wall_size).abs();
         } else if angle < PI {
@@ -66,7 +67,7 @@ impl Ray {
         for depth_of_field in 0..8 {
             let grid_x = (intersection_x / map.wall_size).floor().clamp(0.0, map.xy - 1.0) as usize;
             let mut grid_y = (intersection_y / map.wall_size).floor().clamp(0.0, map.xy - 1.0) as usize;
-            
+
             if angle > PI {
                 grid_y -= 1;
             }
@@ -74,7 +75,7 @@ impl Ray {
             if map.data[grid_y * map.xy as usize + grid_x] == 1 {
                 break;
             }
-            
+
             if angle > PI {
                 intersection_x -= map.wall_size / angle.tan();
                 intersection_y -= map.wall_size;
@@ -82,7 +83,37 @@ impl Ray {
                 intersection_x += map.wall_size / angle.tan();
                 intersection_y += map.wall_size;
             }
+        }*/
+        let mut intersection_x = 0.0;
+        if angle > PI / 2.0 && angle < 3.0 * PI / 2.0 {
+            intersection_x = ((x / map.wall_size).floor() * map.wall_size);
+        } else if angle < PI / 2.0 || angle > 3.0 * PI / 2.0 {
+            intersection_x = (x / map.wall_size).floor() * map.wall_size + map.wall_size;
         }
+
+        let mut intersection_y = y + (intersection_x - x) * angle.tan();
+        dbg!(intersection_x, intersection_y);
+        /*
+        for depth_of_field in 0..8 {
+            let mut grid_x = (intersection_x / map.wall_size).floor().clamp(0.0, map.xy - 1.0) as usize;
+            let grid_y = (intersection_y / map.wall_size).floor().clamp(0.0, map.xy - 1.0) as usize;
+
+            if angle > PI / 2.0  {
+                grid_x -= 1;
+            }
+
+            if map.data[grid_y * map.xy as usize + grid_x] == 1 {
+                break;
+            }
+
+            if angle > PI / 2.0  {
+                intersection_x -= map.wall_size;
+                intersection_y -= map.wall_size / angle.tan();
+            } else if angle < 3.0 * PI / 2.0 {
+                intersection_x += map.wall_size;
+                intersection_y += map.wall_size / angle.tan();
+            }
+        } */
 
         Self {
             x,
