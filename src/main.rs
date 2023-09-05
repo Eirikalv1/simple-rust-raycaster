@@ -53,10 +53,53 @@ impl Ray {
     fn new(player: &Player, map: &Map) -> Self {
         let x = player.x;
         let y = player.y;
+
+        let (vertical_intersection_x, vertical_intersection_y) =
+            Self::get_vertical_ray(&player, &map);
+        let vertical_distance = ((x - vertical_intersection_x).powf(2.0)
+            + (y - vertical_intersection_y).powf(2.0))
+        .sqrt();
+
+        let (horizontal_intersection_x, horizontal_intersection_y) =
+            Self::get_horizontal_ray(&player, &map);
+        let horizontal_distance = ((x - horizontal_intersection_x).powf(2.0)
+            + (y - horizontal_intersection_y).powf(2.0))
+        .sqrt();
+
+        let mut intersection_x: f32;
+        let mut intersection_y: f32;
+        if horizontal_distance > vertical_distance {
+            intersection_x = vertical_intersection_x;
+            intersection_y = vertical_intersection_y;
+        } else {
+            intersection_x = horizontal_intersection_x;
+            intersection_y = horizontal_intersection_y;
+        }
+
+        Self {
+            x: player.x,
+            y: player.y,
+            x1: intersection_x,
+            y1: intersection_y,
+        }
+    }
+    fn draw_ray(&self) {
+        draw_line(
+            self.x + PLAYER_SIZE / 2.0,
+            self.y + PLAYER_SIZE / 2.0,
+            self.x1 + PLAYER_SIZE / 2.0,
+            self.y1 + PLAYER_SIZE / 2.0 - WALL_OUTLINE_SIZE / 2.0,
+            1.0,
+            GREEN,
+        );
+    }
+
+    fn get_horizontal_ray(player: &Player, map: &Map) -> (f32, f32) {
+        let x = player.x;
+        let y = player.y;
         let angle = player.angle;
 
-        // ---Check Horizontal Lines---
-        /*let mut intersection_y = 0.0;
+        let mut intersection_y = 0.0;
         if angle > PI {
             intersection_y = ((y / map.wall_size).floor() * map.wall_size).abs();
         } else if angle < PI {
@@ -65,10 +108,14 @@ impl Ray {
         let mut intersection_x = x + (intersection_y - y) / angle.tan();
 
         for depth_of_field in 0..8 {
-            let grid_x = (intersection_x / map.wall_size).floor().clamp(0.0, map.xy - 1.0) as usize;
-            let mut grid_y = (intersection_y / map.wall_size).floor().clamp(0.0, map.xy - 1.0) as usize;
+            let grid_x = (intersection_x / map.wall_size)
+                .floor()
+                .clamp(0.0, map.xy - 1.0) as usize;
+            let mut grid_y = (intersection_y / map.wall_size)
+                .floor()
+                .clamp(0.0, map.xy - 1.0) as usize;
 
-            if angle > PI {
+            if angle > PI && grid_y != 0 {
                 grid_y -= 1;
             }
 
@@ -83,54 +130,48 @@ impl Ray {
                 intersection_x += map.wall_size / angle.tan();
                 intersection_y += map.wall_size;
             }
-        }*/
+        }
+        return (intersection_x as f32, intersection_y as f32);
+    }
+    fn get_vertical_ray(player: &Player, map: &Map) -> (f32, f32) {
+        let x = player.x;
+        let y = player.y;
+        let angle = player.angle;
+
         let mut intersection_x = 0.0;
         if angle > PI / 2.0 && angle < 3.0 * PI / 2.0 {
             intersection_x = ((x / map.wall_size).floor() * map.wall_size);
         } else if angle < PI / 2.0 || angle > 3.0 * PI / 2.0 {
             intersection_x = (x / map.wall_size).floor() * map.wall_size + map.wall_size;
         }
-
         let mut intersection_y = y + (intersection_x - x) * angle.tan();
-        dbg!(intersection_x, intersection_y);
-        /*
-        for depth_of_field in 0..8 {
-            let mut grid_x = (intersection_x / map.wall_size).floor().clamp(0.0, map.xy - 1.0) as usize;
-            let grid_y = (intersection_y / map.wall_size).floor().clamp(0.0, map.xy - 1.0) as usize;
 
-            if angle > PI / 2.0  {
+        for depth_of_field in 0..8 {
+            let mut grid_x = (intersection_x / map.wall_size)
+                .floor()
+                .clamp(0.0, map.xy - 1.0) as usize;
+            let grid_y = (intersection_y / map.wall_size)
+                .floor()
+                .clamp(0.0, map.xy - 1.0) as usize;
+
+            if grid_x != 0 && angle > PI / 2.0 && angle < 3.0 * PI / 2.0 {
                 grid_x -= 1;
             }
-
+            dbg!(grid_x, grid_y);
             if map.data[grid_y * map.xy as usize + grid_x] == 1 {
                 break;
             }
 
-            if angle > PI / 2.0  {
+            if angle > PI / 2.0 && angle < 3.0 * PI / 2.0 {
                 intersection_x -= map.wall_size;
-                intersection_y -= map.wall_size / angle.tan();
-            } else if angle < 3.0 * PI / 2.0 {
+                intersection_y -= map.wall_size * angle.tan();
+            } else if angle < PI / 2.0 || angle > 3.0 * PI / 2.0 {
                 intersection_x += map.wall_size;
-                intersection_y += map.wall_size / angle.tan();
+                intersection_y += map.wall_size * angle.tan();
             }
-        } */
-
-        Self {
-            x,
-            y,
-            x1: intersection_x,
-            y1: intersection_y,
         }
-    }
-    fn draw_ray(&self) {
-        draw_line(
-            self.x + PLAYER_SIZE / 2.0,
-            self.y + PLAYER_SIZE / 2.0,
-            self.x1 + PLAYER_SIZE / 2.0,
-            self.y1 + PLAYER_SIZE / 2.0 - WALL_OUTLINE_SIZE / 2.0,
-            1.0,
-            GREEN,
-        );
+
+        return (intersection_x as f32, intersection_y as f32);
     }
 }
 
