@@ -52,6 +52,7 @@ struct Ray {
     y: f32,
     x1: f32,
     y1: f32,
+    distance: f32,
 }
 
 impl Ray {
@@ -93,6 +94,7 @@ impl Ray {
             y: player.y,
             x1: intersection_x,
             y1: intersection_y,
+            distance: f32::min(horizontal_distance, vertical_distance),
         }
     }
     fn draw_ray(&self) {
