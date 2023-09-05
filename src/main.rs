@@ -2,6 +2,7 @@
 use macroquad::prelude::*;
 use std::f32::consts::PI;
 
+const ONE_DEGREE: f32 = 0.0174533;
 const WINDOW_SIZE: f32 = 800.0;
 const MOVE_SPEED: f32 = 5.0;
 const PLAYER_SIZE: f32 = 8.0;
@@ -24,8 +25,12 @@ async fn main() {
         map.draw_map();
         player.draw_player();
 
-        let ray = Ray::new(&player, &map);
-        ray.draw_ray();
+        let mut angle = player.angle - PI / 6.0;
+        for _ in 0..60 {
+            let ray = Ray::new(&player, &map, angle);
+            ray.draw_ray();
+            angle += ONE_DEGREE;
+        }
 
         player.move_player();
 
@@ -50,18 +55,25 @@ struct Ray {
 }
 
 impl Ray {
-    fn new(player: &Player, map: &Map) -> Self {
+    fn new(player: &Player, map: &Map, mut angle: f32) -> Self {
         let x = player.x;
         let y = player.y;
 
+        if angle < 0.0 {
+            angle += 2.0 * PI;
+        }
+        if angle >= 2.0 * PI {
+            angle -= 2.0 * PI;
+        }
+
         let (vertical_intersection_x, vertical_intersection_y) =
-            Self::get_vertical_ray(&player, &map);
+            Self::get_vertical_ray(&player, &map, angle);
         let vertical_distance = ((x - vertical_intersection_x).powf(2.0)
             + (y - vertical_intersection_y).powf(2.0))
         .sqrt();
 
         let (horizontal_intersection_x, horizontal_intersection_y) =
-            Self::get_horizontal_ray(&player, &map);
+            Self::get_horizontal_ray(&player, &map, angle);
         let horizontal_distance = ((x - horizontal_intersection_x).powf(2.0)
             + (y - horizontal_intersection_y).powf(2.0))
         .sqrt();
@@ -94,10 +106,9 @@ impl Ray {
         );
     }
 
-    fn get_horizontal_ray(player: &Player, map: &Map) -> (f32, f32) {
+    fn get_horizontal_ray(player: &Player, map: &Map, angle: f32) -> (f32, f32) {
         let x = player.x;
         let y = player.y;
-        let angle = player.angle;
 
         let mut intersection_y = 0.0;
         if angle > PI {
@@ -133,10 +144,9 @@ impl Ray {
         }
         return (intersection_x as f32, intersection_y as f32);
     }
-    fn get_vertical_ray(player: &Player, map: &Map) -> (f32, f32) {
+    fn get_vertical_ray(player: &Player, map: &Map, angle: f32) -> (f32, f32) {
         let x = player.x;
         let y = player.y;
-        let angle = player.angle;
 
         let mut intersection_x = 0.0;
         if angle > PI / 2.0 && angle < 3.0 * PI / 2.0 {
@@ -157,7 +167,7 @@ impl Ray {
             if grid_x != 0 && angle > PI / 2.0 && angle < 3.0 * PI / 2.0 {
                 grid_x -= 1;
             }
-            dbg!(grid_x, grid_y);
+
             if map.data[grid_y * map.xy as usize + grid_x] == 1 {
                 break;
             }
